@@ -6,6 +6,7 @@ const browser = await chromium.launch({
 });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 page.on('pageerror', (err) => console.log('PAGEERROR', err.message));
+page.on('console', (msg) => { if (msg.type() === 'error' || msg.type() === 'warning') console.log(`[${msg.type()}]`, msg.text()); });
 
 await page.goto('http://127.0.0.1:5183/', { waitUntil: 'load' });
 await page.waitForTimeout(9000);

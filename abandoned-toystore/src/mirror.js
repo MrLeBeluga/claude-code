@@ -10,6 +10,7 @@ export function createMirror(scene, { position, rotationY = 0, width = 1.4, heig
     color: 0x8a9199,
     textureWidth: 1024,
     textureHeight: 1024,
+    multisample: 0,
   });
   mirror.position.set(...position);
   mirror.rotation.y = rotationY;
