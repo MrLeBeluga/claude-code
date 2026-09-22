@@ -46,3 +46,11 @@ Start by setting up the project structure, then build section by section. Show m
   after the first pass.
 - Forgetting performance — lazy-loaded images, optimized fonts, Lighthouse
   audit at the end.
+
+## Images (`public/images/`)
+
+The three photos (`truffe-coupe.jpg`, `assiette.jpg`, `truffe-entiere.jpg`) and
+the 3D slice texture (`slice-texture.jpg`, cropped from `truffe-coupe.jpg`) were
+generated with Higgsfield (Z Image model). They are placeholders for the
+concept — replace them with the restaurant's real photography before going
+live.

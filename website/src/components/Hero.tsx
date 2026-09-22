@@ -24,7 +24,7 @@ export default function Hero() {
           {title.split(" ").map((word, wi) => (
             <span key={wi} className="mr-[0.25em] inline-block overflow-hidden pb-2 align-bottom">
               <motion.span
-                className={`inline-block ${wi === 2 ? "gold-text italic" : ""}`}
+                className={`inline-block ${wi === 2 ? "italic text-gold" : ""}`}
                 initial={{ y: "110%", rotateX: -60 }}
                 animate={{ y: 0, rotateX: 0 }}
                 transition={{ duration: 1.2, delay: 0.3 + wi * 0.15, ease: [0.22, 1, 0.36, 1] }}
@@ -47,19 +47,19 @@ export default function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 1.2 }}
-          className="mt-10 flex flex-wrap gap-4"
+          className="mt-12 flex flex-wrap items-center gap-6"
         >
           <a
             href="#reservation"
-            className="rounded-full bg-gold px-8 py-4 text-sm font-medium uppercase tracking-[0.2em] text-ink transition-colors duration-300 hover:bg-gold-soft"
+            className="bg-cream px-8 py-4 text-[11px] font-medium uppercase tracking-[0.25em] text-ink transition-colors duration-300 hover:bg-gold"
           >
             Réserver une table
           </a>
           <a
             href="#carte"
-            className="rounded-full border border-line px-8 py-4 text-sm uppercase tracking-[0.2em] text-cream transition-colors duration-300 hover:border-gold hover:text-gold"
+            className="px-2 py-4 text-[11px] uppercase tracking-[0.25em] text-muted transition-colors duration-300 hover:text-cream"
           >
-            La carte
+            La carte →
           </a>
         </motion.div>
       </motion.div>
