@@ -6,6 +6,8 @@ import plasticCrate01Url from './assets/models/plastic_crate_01.glb';
 import plasticCrate02Url from './assets/models/plastic_crate_02.glb';
 import woodenCrate01Url from './assets/models/wooden_crate_01.glb';
 import rubberDuckUrl from './assets/models/rubber_duck_toy.glb';
+import productShelf06Url from './assets/models/product_shelf_06.glb';
+import mainCabinetUrl from './assets/models/main_cabinet.glb';
 
 const MODEL_URLS = {
   wornMetalRack: wornMetalRackUrl,
@@ -13,6 +15,8 @@ const MODEL_URLS = {
   plasticCrate02: plasticCrate02Url,
   woodenCrate01: woodenCrate01Url,
   rubberDuck: rubberDuckUrl,
+  productShelf06: productShelf06Url,
+  mainCabinet: mainCabinetUrl,
 };
 
 const loader = new GLTFLoader();

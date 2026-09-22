@@ -185,6 +185,15 @@ export function buildWorld(scene) {
   colliders.push(new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(-4.4, 0.4, -6.7), new THREE.Vector3(0.9, 0.85, 0.65)));
   colliders.push(new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(2.3, 0.25, -1.6), new THREE.Vector3(0.65, 0.5, 0.6)));
 
+  // ---------- checkout counter + product display (user-supplied CC models) ----------
+  const cabinetScale = 1.5;
+  placeModel(scene, 'mainCabinet', { position: [5.7, 0, 4.5], rotationY: Math.PI, scale: cabinetScale });
+  colliders.push(new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(5.7, 0.75, 4.5), new THREE.Vector3(0.85, 1.55, 1.0)));
+
+  const shelfScale = 1.2;
+  placeModel(scene, 'productShelf06', { position: [6.3, 0, 0.5], rotationY: -Math.PI / 2, scale: shelfScale });
+  colliders.push(new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(6.3, 0.6, 0.5), new THREE.Vector3(1.2, 1.2, 0.45)));
+
   // ---------- claw machine (right side, dark) ----------
   const claw = new THREE.Group();
   const clawBody = new THREE.Mesh(addUV2(new THREE.BoxGeometry(1.4, 2.4, 1.2)), rustyMetalMaterial([0.8, 1.4]));
