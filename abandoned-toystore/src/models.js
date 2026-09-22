@@ -8,6 +8,7 @@ import woodenCrate01Url from './assets/models/wooden_crate_01.glb';
 import rubberDuckUrl from './assets/models/rubber_duck_toy.glb';
 import productShelf06Url from './assets/models/product_shelf_06.glb';
 import mainCabinetUrl from './assets/models/main_cabinet.glb';
+import playerCharacterUrl from './assets/models/player_character.glb';
 
 const MODEL_URLS = {
   wornMetalRack: wornMetalRackUrl,
@@ -17,6 +18,7 @@ const MODEL_URLS = {
   rubberDuck: rubberDuckUrl,
   productShelf06: productShelf06Url,
   mainCabinet: mainCabinetUrl,
+  playerCharacter: playerCharacterUrl,
 };
 
 const loader = new GLTFLoader();
@@ -49,5 +51,32 @@ export async function placeModel(scene, key, { position = [0, 0, 0], rotationY =
     }
   });
   scene.add(instance);
+  return instance;
+}
+
+// The player's avatar needs a group whose position/rotation are driven every
+// frame by the controller, created synchronously so it can be handed to the
+// controller immediately — the mesh itself is filled in once the (async)
+// model finishes loading.
+export function createCharacterGroup(scene) {
+  const group = new THREE.Group();
+  scene.add(group);
+  return group;
+}
+
+export async function fillCharacterGroup(group, { height = 1.75 } = {}) {
+  const original = await loadGltf(MODEL_URLS.playerCharacter);
+  const instance = original.clone(true);
+  // Tripo3D exports are normalized to a ~1-unit bounding box; scale to a
+  // human height and lift so the feet (not the model's own center) sit at y=0.
+  instance.scale.setScalar(height);
+  instance.position.y = height / 2;
+  instance.traverse((o) => {
+    if (o.isMesh) {
+      o.castShadow = true;
+      o.receiveShadow = true;
+    }
+  });
+  group.add(instance);
   return instance;
 }

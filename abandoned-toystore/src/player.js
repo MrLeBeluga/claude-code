@@ -1,28 +1,62 @@
 import * as THREE from 'three';
-import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-const EYE_HEIGHT = 1.7;
 const RADIUS = 0.35;
 const SPEED = 3.6;
+const MIN_PITCH = -0.1;
+const MAX_PITCH = 1.15;
+const UP = new THREE.Vector3(0, 1, 0);
 
-export class Player {
-  constructor(camera, domElement, colliders) {
+// The character model's own "front" doesn't line up with three.js's -Z
+// forward convention (Tripo3D exports have no fixed orientation), so this
+// constant rotates the mesh to actually face the way it's walking. Tune by
+// eye: 0 / Math.PI/2 / Math.PI / -Math.PI/2 are the four things to try.
+const CHARACTER_FACING_OFFSET = Math.PI / 2;
+
+export class Player extends THREE.EventDispatcher {
+  constructor(camera, domElement, colliders, characterGroup, scene) {
+    super();
     this.camera = camera;
-    this.controls = new PointerLockControls(camera, domElement);
-    this.colliders = colliders; // array of THREE.Box3
-    this.velocity = new THREE.Vector3();
-    this.position = new THREE.Vector3(0, EYE_HEIGHT, 6);
-    this.camera.position.copy(this.position);
+    this.domElement = domElement;
+    this.colliders = colliders;
+    this.characterGroup = characterGroup;
+    this.scene = scene;
+    this.raycaster = new THREE.Raycaster();
+    this.minCameraDistance = 0.6;
 
+    this.position = new THREE.Vector3(0, 0, 6);
+    this.yaw = 0;
+    this.pitch = 0.22;
+    this.distance = 4.5;
+
+    this.isLocked = false;
     this.keys = { forward: false, back: false, left: false, right: false };
 
-    this.bobTime = 0;
-
-    window.addEventListener('keydown', (e) => this.onKey(e, true));
-    window.addEventListener('keyup', (e) => this.onKey(e, false));
+    this._onMouseMove = this._onMouseMove.bind(this);
+    this._onPointerLockChange = this._onPointerLockChange.bind(this);
+    document.addEventListener('mousemove', this._onMouseMove);
+    document.addEventListener('pointerlockchange', this._onPointerLockChange);
+    window.addEventListener('keydown', (e) => this._onKey(e, true));
+    window.addEventListener('keyup', (e) => this._onKey(e, false));
   }
 
-  onKey(e, down) {
+  lock() {
+    this.domElement.requestPointerLock();
+  }
+
+  _onPointerLockChange() {
+    this.isLocked = document.pointerLockElement === this.domElement;
+    this.dispatchEvent({ type: this.isLocked ? 'lock' : 'unlock' });
+  }
+
+  _onMouseMove(e) {
+    if (!this.isLocked) return;
+    const sensitivity = 0.0022;
+    this.yaw -= e.movementX * sensitivity;
+    this.pitch -= e.movementY * sensitivity;
+    this.pitch = Math.max(MIN_PITCH, Math.min(MAX_PITCH, this.pitch));
+  }
+
+  _onKey(e, down) {
     switch (e.code) {
       case 'KeyW':
       case 'ArrowUp':
@@ -46,7 +80,6 @@ export class Player {
   }
 
   resolveCollisions(next) {
-    // axis-separated collision against room + prop AABBs, player treated as a circle
     for (const box of this.colliders) {
       const closestX = Math.max(box.min.x, Math.min(next.x, box.max.x));
       const closestZ = Math.max(box.min.z, Math.min(next.z, box.max.z));
@@ -64,13 +97,10 @@ export class Player {
   }
 
   update(dt) {
-    if (!this.controls.isLocked) return;
+    if (!this.isLocked) return;
 
-    const forward = new THREE.Vector3();
-    this.camera.getWorldDirection(forward);
-    forward.y = 0;
-    forward.normalize();
-    const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0));
+    const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(UP, this.yaw);
+    const right = new THREE.Vector3().crossVectors(forward, UP);
 
     const move = new THREE.Vector3();
     if (this.keys.forward) move.add(forward);
@@ -78,22 +108,43 @@ export class Player {
     if (this.keys.right) move.add(right);
     if (this.keys.left) move.sub(right);
 
-    let moving = false;
     if (move.lengthSq() > 0) {
       move.normalize().multiplyScalar(SPEED * dt);
-      moving = true;
     }
 
     const next = this.position.clone().add(move);
     this.resolveCollisions(next);
     this.position.copy(next);
 
-    // head bob
-    if (moving) {
-      this.bobTime += dt * 8.5;
+    if (this.characterGroup) {
+      this.characterGroup.position.set(this.position.x, 0, this.position.z);
+      this.characterGroup.rotation.y = this.yaw + CHARACTER_FACING_OFFSET;
     }
-    const bob = moving ? Math.sin(this.bobTime) * 0.035 : 0;
 
-    this.camera.position.set(this.position.x, EYE_HEIGHT + bob, this.position.z);
+    // orbit camera around a point roughly at the character's chest/head height
+    const lookTarget = new THREE.Vector3(this.position.x, 1.35, this.position.z);
+    const horiz = this.distance * Math.cos(this.pitch);
+    const vert = this.distance * Math.sin(this.pitch);
+    const desiredOffset = forward.clone().multiplyScalar(-horiz).add(new THREE.Vector3(0, vert, 0));
+    const desiredDistance = desiredOffset.length();
+    const dir = desiredOffset.clone().normalize();
+
+    // pull the camera in if the desired spot is past a wall/prop — otherwise
+    // the orbit camera clips outside the room near any wall (it did at spawn)
+    let actualDistance = desiredDistance;
+    if (this.scene) {
+      this.raycaster.set(lookTarget, dir);
+      this.raycaster.near = 0.35; // skip the character's own back/shoulders
+      this.raycaster.far = desiredDistance;
+      const targets = this.scene.children.filter((o) => o !== this.characterGroup);
+      const hits = this.raycaster.intersectObjects(targets, true);
+      if (hits.length > 0) {
+        actualDistance = Math.max(this.minCameraDistance, hits[0].distance - 0.2);
+      }
+    }
+
+    const camPos = lookTarget.clone().add(dir.multiplyScalar(actualDistance));
+    this.camera.position.copy(camPos);
+    this.camera.lookAt(lookTarget);
   }
 }

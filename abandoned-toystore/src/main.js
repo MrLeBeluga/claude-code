@@ -3,6 +3,8 @@ import { buildWorld } from './world.js';
 import { Player } from './player.js';
 import { createPostFX } from './postprocessing.js';
 import { loadEnvironment } from './environment.js';
+import { createCharacterGroup, fillCharacterGroup } from './models.js';
+import { createMirror } from './mirror.js';
 
 const app = document.getElementById('app');
 const overlay = document.getElementById('overlay');
@@ -21,14 +23,23 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.05, 60);
 
 const { colliders, interactive, flickerLights } = buildWorld(scene);
-const player = new Player(camera, renderer.domElement, colliders);
+
+const characterGroup = createCharacterGroup(scene);
+fillCharacterGroup(characterGroup);
+
+const player = new Player(camera, renderer.domElement, colliders, characterGroup, scene);
+player.position.set(0, 0, 6);
+
+// mirror mounted on the entrance wall (behind the spawn point), so the
+// player has to turn around to see their own character — that's the point.
+createMirror(scene, { position: [-3, 1.3, 7.86], rotationY: Math.PI, width: 1.4, height: 2.3 });
 
 const postfx = createPostFX(renderer, scene, camera);
 loadEnvironment(renderer, scene);
 
-overlay.addEventListener('click', () => player.controls.lock());
-player.controls.addEventListener('lock', () => overlay.classList.add('hidden'));
-player.controls.addEventListener('unlock', () => overlay.classList.remove('hidden'));
+overlay.addEventListener('click', () => player.lock());
+player.addEventListener('lock', () => overlay.classList.add('hidden'));
+player.addEventListener('unlock', () => overlay.classList.remove('hidden'));
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
