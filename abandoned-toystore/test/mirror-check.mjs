@@ -20,7 +20,7 @@ await page.waitForTimeout(400);
 await page.screenshot({ path: 'test/mc-01-facing-mirror.png' });
 
 await page.keyboard.down('KeyW');
-await page.waitForTimeout(14000);
+await page.waitForTimeout(9000);
 await page.keyboard.up('KeyW');
 await page.screenshot({ path: 'test/mc-02-at-mirror.png' });
 
