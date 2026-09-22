@@ -4,6 +4,7 @@ import {
   Easing,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -12,61 +13,93 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  addDoc,
+  collection,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+} from "firebase/firestore";
 
+import { db } from "./firebase";
 import { type Mood, randomMessage } from "./messages";
 
-const NAME_KEY = "love-note:name";
-const COUNT_KEY = "love-note:count";
-const DATE_KEY = "love-note:date";
+const NAME_KEY = "love-note:my-name";
 
-function todayKey() {
-  return new Date().toISOString().slice(0, 10);
+type Heart = {
+  id: string;
+  from: string;
+  mood: Mood;
+  message: string;
+  ts: number;
+};
+
+function todayKey(ts: number) {
+  return new Date(ts).toISOString().slice(0, 10);
+}
+
+function timeAgo(ts: number) {
+  const diffMs = Date.now() - ts;
+  const min = Math.floor(diffMs / 60000);
+  if (min < 1) return "à l'instant";
+  if (min < 60) return `il y a ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `il y a ${h} h`;
+  const d = Math.floor(h / 24);
+  return `il y a ${d} j`;
 }
 
 export default function App() {
-  const [name, setName] = useState("mon amour");
+  const [myName, setMyName] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState("");
   const [editingName, setEditingName] = useState(false);
   const [mood, setMood] = useState<Mood>("doux");
   const [message, setMessage] = useState(() => randomMessage("doux"));
-  const [count, setCount] = useState(0);
+  const [hearts, setHearts] = useState<Heart[]>([]);
 
   const heartScale = useRef(new Animated.Value(1)).current;
   const cardOpacity = useRef(new Animated.Value(1)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
   const [showFloatHeart, setShowFloatHeart] = useState(false);
+  const isFirstSnapshot = useRef(true);
 
   useEffect(() => {
     (async () => {
-      const storedName = await AsyncStorage.getItem(NAME_KEY);
-      if (storedName) setName(storedName);
-
-      const storedDate = await AsyncStorage.getItem(DATE_KEY);
-      const storedCount = await AsyncStorage.getItem(COUNT_KEY);
-      if (storedDate === todayKey() && storedCount) {
-        setCount(parseInt(storedCount, 10));
+      const stored = await AsyncStorage.getItem(NAME_KEY);
+      if (stored) {
+        setMyName(stored);
       } else {
-        await AsyncStorage.setItem(DATE_KEY, todayKey());
-        await AsyncStorage.setItem(COUNT_KEY, "0");
+        setEditingName(true);
       }
     })();
   }, []);
 
-  const persistCount = async (next: number) => {
-    setCount(next);
-    await AsyncStorage.setItem(DATE_KEY, todayKey());
-    await AsyncStorage.setItem(COUNT_KEY, String(next));
-  };
+  useEffect(() => {
+    const heartsQuery = query(
+      collection(db, "hearts"),
+      orderBy("ts", "desc"),
+      limit(30),
+    );
+    const unsubscribe = onSnapshot(heartsQuery, (snapshot) => {
+      const next: Heart[] = snapshot.docs.map((d) => {
+        const data = d.data() as Omit<Heart, "id">;
+        return { id: d.id, ...data };
+      });
+      setHearts(next);
 
-  const sendLove = () => {
-    cardOpacity.setValue(0);
-    setMessage(randomMessage(mood, message));
-    Animated.timing(cardOpacity, {
-      toValue: 1,
-      duration: 250,
-      useNativeDriver: true,
-    }).start();
+      if (!isFirstSnapshot.current) {
+        const incoming = snapshot
+          .docChanges()
+          .some((c) => c.type === "added" && c.doc.data().from !== myName);
+        if (incoming) playReceiveAnimation();
+      }
+      isFirstSnapshot.current = false;
+    });
+    return unsubscribe;
+  }, [myName]);
 
+  const playReceiveAnimation = () => {
     Animated.sequence([
       Animated.timing(heartScale, {
         toValue: 1.35,
@@ -89,8 +122,39 @@ export default function App() {
       easing: Easing.out(Easing.quad),
       useNativeDriver: true,
     }).start(() => setShowFloatHeart(false));
+  };
 
-    persistCount(count + 1);
+  const sendLove = async () => {
+    if (!myName) return;
+    const nextMessage = randomMessage(mood, message);
+    cardOpacity.setValue(0);
+    setMessage(nextMessage);
+    Animated.timing(cardOpacity, {
+      toValue: 1,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+
+    Animated.sequence([
+      Animated.timing(heartScale, {
+        toValue: 1.35,
+        duration: 120,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.spring(heartScale, {
+        toValue: 1,
+        friction: 3,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    await addDoc(collection(db, "hearts"), {
+      from: myName,
+      mood,
+      message: nextMessage,
+      ts: Date.now(),
+    });
   };
 
   const switchMood = (next: Mood) => {
@@ -100,17 +164,26 @@ export default function App() {
   };
 
   const openNameEditor = () => {
-    setNameDraft(name);
+    setNameDraft(myName ?? "");
     setEditingName(true);
   };
 
   const saveName = async () => {
     const trimmed = nameDraft.trim();
-    const finalName = trimmed.length > 0 ? trimmed : "mon amour";
-    setName(finalName);
-    await AsyncStorage.setItem(NAME_KEY, finalName);
+    if (trimmed.length === 0) return;
+    setMyName(trimmed);
+    await AsyncStorage.setItem(NAME_KEY, trimmed);
     setEditingName(false);
   };
+
+  const today = todayKey(Date.now());
+  const sentToday = hearts.filter(
+    (h) => h.from === myName && todayKey(h.ts) === today,
+  ).length;
+  const receivedToday = hearts.filter(
+    (h) => h.from !== myName && todayKey(h.ts) === today,
+  ).length;
+  const received = hearts.filter((h) => h.from !== myName);
 
   const floatTranslateY = floatAnim.interpolate({
     inputRange: [0, 1],
@@ -124,11 +197,18 @@ export default function App() {
   return (
     <LinearGradient colors={["#ffdde6", "#ffe8f0", "#fff5f8"]} style={styles.fill}>
       <StatusBar style="dark" />
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container}>
         <Pressable onPress={openNameEditor} style={styles.header}>
-          <Text style={styles.headerText}>Pour {name} 💌</Text>
-          <Text style={styles.headerHint}>touche pour changer le prénom</Text>
+          <Text style={styles.headerText}>
+            {myName ? `Salut ${myName} 💌` : "Envoie de l'amour 💌"}
+          </Text>
+          <Text style={styles.headerHint}>touche pour changer ton prénom</Text>
         </Pressable>
+
+        <View style={styles.statsRow}>
+          <Text style={styles.statText}>💌 {sentToday} envoyé(s)</Text>
+          <Text style={styles.statText}>💖 {receivedToday} reçu(s)</Text>
+        </View>
 
         <View style={styles.moodRow}>
           <Pressable
@@ -174,28 +254,41 @@ export default function App() {
           </Animated.View>
         </View>
 
-        <Text style={styles.counter}>
-          {count === 0
-            ? "Touche le cœur pour ta première dose d'amour du jour"
-            : `${count} dose${count > 1 ? "s" : ""} d'amour envoyée${count > 1 ? "s" : ""} aujourd'hui`}
-        </Text>
-      </View>
+        <Text style={styles.counter}>Touche le cœur pour envoyer ce message</Text>
+
+        {received.length > 0 && (
+          <View style={styles.feed}>
+            <Text style={styles.feedTitle}>Reçus récemment</Text>
+            {received.slice(0, 10).map((h) => (
+              <View key={h.id} style={styles.feedItem}>
+                <Text style={styles.feedItemFrom}>
+                  {h.from} {h.mood === "doux" ? "💕" : "😂"}{" "}
+                  <Text style={styles.feedItemTime}>{timeAgo(h.ts)}</Text>
+                </Text>
+                <Text style={styles.feedItemText}>{h.message}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
 
       <Modal visible={editingName} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Le prénom de ta moitié</Text>
+            <Text style={styles.modalTitle}>C'est qui, sur ce téléphone ?</Text>
             <TextInput
               value={nameDraft}
               onChangeText={setNameDraft}
-              placeholder="mon amour"
+              placeholder="ton prénom"
               style={styles.input}
               autoFocus
             />
             <View style={styles.modalRow}>
-              <Pressable onPress={() => setEditingName(false)} style={styles.modalCancel}>
-                <Text style={styles.modalCancelText}>Annuler</Text>
-              </Pressable>
+              {myName && (
+                <Pressable onPress={() => setEditingName(false)} style={styles.modalCancel}>
+                  <Text style={styles.modalCancelText}>Annuler</Text>
+                </Pressable>
+              )}
               <Pressable onPress={saveName} style={styles.modalSave}>
                 <Text style={styles.modalSaveText}>Enregistrer</Text>
               </Pressable>
@@ -210,15 +303,17 @@ export default function App() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   container: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: "center",
-    justifyContent: "center",
     paddingHorizontal: 24,
-    gap: 20,
+    paddingVertical: 40,
+    gap: 18,
   },
   header: { alignItems: "center", gap: 4 },
   headerText: { fontSize: 24, fontWeight: "700", color: "#c2185b" },
   headerHint: { fontSize: 12, color: "#b06a80" },
+  statsRow: { flexDirection: "row", gap: 16 },
+  statText: { fontSize: 13, color: "#a45874", fontWeight: "600" },
   moodRow: { flexDirection: "row", gap: 10 },
   moodButton: {
     paddingVertical: 8,
@@ -267,6 +362,17 @@ const styles = StyleSheet.create({
   },
   heartButtonText: { fontSize: 44 },
   counter: { fontSize: 13, color: "#a45874", textAlign: "center" },
+  feed: { width: "100%", gap: 10, marginTop: 8 },
+  feedTitle: { fontSize: 14, fontWeight: "700", color: "#c2185b" },
+  feedItem: {
+    backgroundColor: "#ffffffcc",
+    borderRadius: 16,
+    padding: 14,
+    gap: 4,
+  },
+  feedItemFrom: { fontSize: 12, fontWeight: "700", color: "#c2185b" },
+  feedItemTime: { fontWeight: "400", color: "#b06a80" },
+  feedItemText: { fontSize: 14, color: "#4a2536", lineHeight: 20 },
   modalBackdrop: {
     flex: 1,
     backgroundColor: "#00000055",
