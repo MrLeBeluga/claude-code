@@ -27,7 +27,7 @@ await page.screenshot({ path: 'test/shot-02-locked.png' });
 // simulated clock (delta-time based) lags far behind wall-clock time.
 // Scale real-world waits up accordingly for movement to register.
 await page.keyboard.down('KeyW');
-await page.waitForTimeout(15000);
+await page.waitForTimeout(30000);
 await page.keyboard.up('KeyW');
 await page.screenshot({ path: 'test/shot-03-toys.png' });
 

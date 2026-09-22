@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { buildWorld } from './world.js';
 import { Player } from './player.js';
 import { createPostFX } from './postprocessing.js';
+import { loadEnvironment } from './environment.js';
 
 const app = document.getElementById('app');
 const overlay = document.getElementById('overlay');
@@ -23,6 +24,7 @@ const { colliders, interactive, flickerLights } = buildWorld(scene);
 const player = new Player(camera, renderer.domElement, colliders);
 
 const postfx = createPostFX(renderer, scene, camera);
+loadEnvironment(renderer, scene);
 
 overlay.addEventListener('click', () => player.controls.lock());
 player.controls.addEventListener('lock', () => overlay.classList.add('hidden'));

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { woodPlankWall, concreteFloor, dropCeiling, signTexture, graffitiTexture, radialGlow } from './textures.js';
+import { signTexture, graffitiTexture, radialGlow } from './textures.js';
+import { woodWallMaterial, woodFloorMaterial, ceilingMaterial, rustyMetalMaterial, addUV2 } from './pbrTextures.js';
 
 const ROOM_W = 14;
 const ROOM_D = 16;
@@ -10,30 +11,27 @@ export function buildWorld(scene) {
   const interactive = [];
   const flickerLights = [];
 
-  // ---------- materials ----------
-  const wallTex = woodPlankWall({ base: '#6b6f76', seed: 4 });
-  const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.95, metalness: 0.02 });
-
-  const floorTex = concreteFloor({ seed: 7 });
-  const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.9, metalness: 0.05 });
-
-  const ceilTex = dropCeiling({ seed: 9 });
-  const ceilMat = new THREE.MeshStandardMaterial({ map: ceilTex, roughness: 1, metalness: 0 });
+  // ---------- materials (real CC0 PBR photo-scans from Poly Haven) ----------
+  const wallMat = woodWallMaterial([3.2, 1.5]);
+  const floorMat = woodFloorMaterial([5, 5.5]);
+  const ceilMat = ceilingMaterial([3, 3.4]);
 
   // ---------- shell ----------
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_W, ROOM_D), floorMat);
+  const floorGeo = addUV2(new THREE.PlaneGeometry(ROOM_W, ROOM_D));
+  const floor = new THREE.Mesh(floorGeo, floorMat);
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   scene.add(floor);
 
-  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_W, ROOM_D), ceilMat);
+  const ceilGeo = addUV2(new THREE.PlaneGeometry(ROOM_W, ROOM_D));
+  const ceiling = new THREE.Mesh(ceilGeo, ceilMat);
   ceiling.rotation.x = Math.PI / 2;
   ceiling.position.y = ROOM_H;
   ceiling.receiveShadow = true;
   scene.add(ceiling);
 
   function wall(w, h, x, z, rotY) {
-    const geo = new THREE.PlaneGeometry(w, h);
+    const geo = addUV2(new THREE.PlaneGeometry(w, h));
     const m = new THREE.Mesh(geo, wallMat);
     m.position.set(x, h / 2, z);
     m.rotation.y = rotY;
@@ -163,8 +161,8 @@ export function buildWorld(scene) {
   // ---------- shelving rack with toy boxes ----------
   function shelfUnit(x, z, rotY) {
     const group = new THREE.Group();
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x8a8f98, roughness: 0.6, metalness: 0.5 });
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.2, 0.5), frameMat);
+    const frameGeo = addUV2(new THREE.BoxGeometry(2.4, 2.2, 0.5));
+    const frame = new THREE.Mesh(frameGeo, rustyMetalMaterial([1, 1]));
     frame.position.y = 1.1;
     frame.castShadow = true;
     group.add(frame);
