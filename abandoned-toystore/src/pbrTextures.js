@@ -32,7 +32,7 @@ function load(url, { srgb = false } = {}) {
 // arm.jpg packs Ambient-Occlusion (R), Roughness (G), Metalness (B) —
 // the exact channel layout THREE.MeshStandardMaterial expects for
 // aoMap / roughnessMap / metalnessMap, so one texture drives all three.
-function pbrMaterial({ diff, nor, arm, repeat = [1, 1], extra = {} }) {
+function pbrMaterial({ diff, nor, arm, repeat = [1, 1], normalScale = 1, extra = {} }) {
   const map = load(diff, { srgb: true });
   const normalMap = load(nor);
   const armMap = load(arm);
@@ -41,6 +41,7 @@ function pbrMaterial({ diff, nor, arm, repeat = [1, 1], extra = {} }) {
   return new THREE.MeshStandardMaterial({
     map,
     normalMap,
+    normalScale: new THREE.Vector2(normalScale, normalScale),
     aoMap: armMap,
     roughnessMap: armMap,
     metalnessMap: armMap,
@@ -60,7 +61,7 @@ export function woodFloorMaterial(repeat = [5, 5]) {
 }
 
 export function ceilingMaterial(repeat = [3, 3]) {
-  return pbrMaterial({ diff: ceilingDiff, nor: ceilingNor, arm: ceilingArm, repeat });
+  return pbrMaterial({ diff: ceilingDiff, nor: ceilingNor, arm: ceilingArm, repeat, normalScale: 0.35 });
 }
 
 export function rustyMetalMaterial(repeat = [1, 1]) {
