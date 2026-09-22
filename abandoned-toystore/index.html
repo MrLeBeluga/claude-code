@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Toy Zone — Abandonné</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #000;
+        overflow: hidden;
+        font-family: 'Courier New', monospace;
+      }
+      #app { position: fixed; inset: 0; }
+      canvas { display: block; width: 100% !important; height: 100% !important; }
+
+      #overlay {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(ellipse at center, #1a1a1a 0%, #000 100%);
+        color: #ddd;
+        text-align: center;
+        z-index: 10;
+        cursor: pointer;
+      }
+      #overlay h1 {
+        font-size: 2.4em;
+        letter-spacing: 0.15em;
+        color: #7ec8e3;
+        text-shadow: 0 0 12px rgba(126,200,227,0.6);
+        margin-bottom: 0.2em;
+      }
+      #overlay p { opacity: 0.7; max-width: 480px; line-height: 1.6; }
+      #overlay .key { color: #fff; border: 1px solid #666; padding: 1px 7px; border-radius: 3px; }
+      #overlay.hidden { display: none; }
+
+      #hud {
+        position: fixed;
+        left: 16px;
+        bottom: 14px;
+        color: #ccc;
+        font-size: 12px;
+        opacity: 0.55;
+        z-index: 5;
+        pointer-events: none;
+        text-shadow: 0 1px 2px #000;
+      }
+      #crosshair {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        width: 5px;
+        height: 5px;
+        margin: -2.5px 0 0 -2.5px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.55);
+        z-index: 5;
+        pointer-events: none;
+      }
+      #message {
+        position: fixed;
+        left: 50%;
+        top: 72%;
+        transform: translate(-50%, 0);
+        color: #7ec8e3;
+        text-shadow: 0 0 10px rgba(126,200,227,0.7);
+        font-size: 15px;
+        letter-spacing: 0.05em;
+        z-index: 5;
+        opacity: 0;
+        transition: opacity 0.4s;
+        pointer-events: none;
+        text-align: center;
+      }
+      #message.show { opacity: 1; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="crosshair"></div>
+    <div id="hud">ZQSD/WASD — bouger &nbsp;·&nbsp; Souris — regarder &nbsp;·&nbsp; E — interagir &nbsp;·&nbsp; Échap — libérer la souris</div>
+    <div id="message"></div>
+    <div id="overlay">
+      <h1>TOY ZONE</h1>
+      <p>
+        Le magasin a fermé il y a longtemps. Quelque chose y brille encore.<br /><br />
+        Clique pour entrer. <span class="key">ZQSD</span> pour marcher,
+        la souris pour regarder, <span class="key">E</span> pour ramasser.
+      </p>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
