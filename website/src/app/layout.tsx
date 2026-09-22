@@ -15,9 +15,10 @@ const sans = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "La Truffe Noire — Restaurant gastronomique · Bruxelles depuis 1988",
+  title: "La Truffe Noire — Concept de refonte (non officiel)",
   description:
     "Restaurant gastronomique dédié à la truffe noire et blanche. Cuisine classique parsemée de touches de modernité, menus, e-boutique et take-away. Boulevard de la Cambre 12, Bruxelles.",
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

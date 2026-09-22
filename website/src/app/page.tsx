@@ -23,6 +23,9 @@ export default function Home() {
       <SceneLoader />
 
       <header className="fixed inset-x-0 top-0 z-40 border-b border-line bg-ink/70 backdrop-blur-md">
+        <p className="border-b border-line bg-ink px-6 py-1.5 text-center text-[10px] uppercase tracking-[0.2em] text-muted">
+          Maquette de refonte non officielle — non affiliée à La Truffe Noire
+        </p>
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 md:px-12">
           <a href="#" className="font-display text-2xl tracking-wide">
             La Truffe <span className="italic">Noire</span>
