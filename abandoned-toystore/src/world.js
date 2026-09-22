@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { signTexture, graffitiTexture, radialGlow } from './textures.js';
 import { woodWallMaterial, woodFloorMaterial, ceilingMaterial, rustyMetalMaterial, addUV2 } from './pbrTextures.js';
+import { placeModel } from './models.js';
 
 const ROOM_W = 14;
 const ROOM_D = 16;
@@ -158,51 +159,35 @@ export function buildWorld(scene) {
   gumballMachine(-1.4, -6.4);
   gumballMachine(-0.3, -6.4);
 
-  // ---------- shelving rack with toy boxes ----------
+  // ---------- shelving rack — real scanned models (Poly Haven CC0), not primitives ----------
   function shelfUnit(x, z, rotY) {
-    const group = new THREE.Group();
-    const frameGeo = addUV2(new THREE.BoxGeometry(2.4, 2.2, 0.5));
-    const frame = new THREE.Mesh(frameGeo, rustyMetalMaterial([1, 1]));
-    frame.position.y = 1.1;
-    frame.castShadow = true;
-    group.add(frame);
+    placeModel(scene, 'wornMetalRack', { position: [x, 0, z], rotationY: rotY });
 
-    const boxColors = [0xd94b4b, 0xf2c14e, 0x3f8efc, 0x5ec27a, 0xe06bd0];
-    for (let row = 0; row < 3; row++) {
-      for (let col = 0; col < 3; col++) {
-        const bw = 0.6, bh = 0.5, bd = 0.35;
-        const mat = new THREE.MeshStandardMaterial({ color: boxColors[(row * 3 + col) % boxColors.length], roughness: 0.7 });
-        const box = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), mat);
-        box.position.set(-0.7 + col * 0.7, 0.35 + row * 0.65, 0.08);
-        box.castShadow = true;
-        group.add(box);
-      }
-    }
-    group.position.set(x, 0, z);
-    group.rotation.y = rotY;
-    scene.add(group);
-
-    const size = new THREE.Vector3(2.4, 2.2, 0.5);
-    const half = size.clone().multiplyScalar(0.5);
-    const c = new THREE.Vector3(x, 1.1, z);
-    // rotate collider footprint if rotated 90deg
+    const size = new THREE.Vector3(1.0, 1.95, 0.7);
+    const c = new THREE.Vector3(x, size.y / 2, z);
     if (Math.abs(rotY % Math.PI) > 0.1) {
       colliders.push(new THREE.Box3().setFromCenterAndSize(c, new THREE.Vector3(size.z, size.y, size.x)));
     } else {
       colliders.push(new THREE.Box3().setFromCenterAndSize(c, size));
     }
-    return group;
   }
-  shelfUnit(-ROOM_W / 2 + 0.3, -1, Math.PI / 2);
-  shelfUnit(-ROOM_W / 2 + 0.3, 2, Math.PI / 2);
-  shelfUnit(-ROOM_W / 2 + 0.3, -4, Math.PI / 2);
+  shelfUnit(-ROOM_W / 2 + 0.4, -1, Math.PI / 2);
+  shelfUnit(-ROOM_W / 2 + 0.4, 2, Math.PI / 2);
+  shelfUnit(-ROOM_W / 2 + 0.4, -4, Math.PI / 2);
+
+  // crates and a couple of stray toys scattered around for clutter/scale variety
+  placeModel(scene, 'woodenCrate01', { position: [-4.7, 0, -6.7], rotationY: 0.4 });
+  placeModel(scene, 'plasticCrate01', { position: [-4.15, 0.41, -6.75], rotationY: 1.0 });
+  placeModel(scene, 'plasticCrate02', { position: [2.3, 0, -1.6], rotationY: -0.3 });
+  placeModel(scene, 'rubberDuck', { position: [2.45, 0.4, -1.4], rotationY: 1.2, scale: 1.3 });
+  placeModel(scene, 'rubberDuck', { position: [-1.7, 0, 1.9], rotationY: -0.6, scale: 1.15 });
+
+  colliders.push(new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(-4.4, 0.4, -6.7), new THREE.Vector3(0.9, 0.85, 0.65)));
+  colliders.push(new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(2.3, 0.25, -1.6), new THREE.Vector3(0.65, 0.5, 0.6)));
 
   // ---------- claw machine (right side, dark) ----------
   const claw = new THREE.Group();
-  const clawBody = new THREE.Mesh(
-    new THREE.BoxGeometry(1.4, 2.4, 1.2),
-    new THREE.MeshStandardMaterial({ color: 0x17171a, roughness: 0.4, metalness: 0.6 })
-  );
+  const clawBody = new THREE.Mesh(addUV2(new THREE.BoxGeometry(1.4, 2.4, 1.2)), rustyMetalMaterial([0.8, 1.4]));
   clawBody.position.y = 1.2;
   clawBody.castShadow = true;
   claw.add(clawBody);
