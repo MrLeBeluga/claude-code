@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Project conventions
 
-- Stack: Next.js 14 (App Router), Tailwind CSS, Framer Motion.
+- Stack: Next.js 16 (App Router), Tailwind CSS v4, Framer Motion, Three.js via @react-three/fiber (3D scene in `src/components/three/`).
 - Animation: use Framer Motion for all animations — scroll-triggered fades,
   staggered reveals on lists/grids, and smooth hover/tap transitions on
   interactive elements. Don't ship static, motion-less sections.
